@@ -56,12 +56,7 @@ class GrainPreviewGraph(FigureCanvas):
         image = image.filled().astype(bool)
 
         # The core is the color of what is behind the graph so only the propellant stands out
-        coreColor = theme.getGrayLevel('window')
-        propellantColor = theme.getGrayLevel('propellant')
-
-        image = np.where(image, propellantColor, coreColor).astype(np.uint8)
-
-        self.image = self.plot.imshow(image, cmap='gray', vmin=0, vmax=255)
+        self.image = self.plot.imshow(theme.getImage(image, 'propellant', 'window'))
 
         self.draw()
 

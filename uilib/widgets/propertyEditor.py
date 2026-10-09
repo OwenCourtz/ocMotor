@@ -1,11 +1,13 @@
 import math
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLineEdit, QCheckBox
-from PyQt6.QtWidgets import QDoubleSpinBox, QSpinBox, QComboBox
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtWidgets import QDoubleSpinBox, QSpinBox, QComboBox, QColorDialog
+from PyQt6.QtCore import pyqtSignal, Qt, QRectF
+from PyQt6.QtGui import QColor, QConicalGradient, QIcon, QPainter, QPixmap
 
 import motorlib
 
+from .. import theme
 from .polygonEditor import PolygonEditor
 from .tabularEditor import TabularEditor
 
@@ -38,6 +40,45 @@ class FloatEditor(QDoubleSpinBox):
         if shown == self.textFromValue(self.value()):
             return self.value()
         return super().valueFromText(text)
+
+
+class ColorEditor(QLineEdit):
+    """A text box for the hex code of a color, with a button at its end that opens a color picker"""
+    iconSize = 64
+
+    def __init__(self):
+        super().__init__()
+        self.pickAction = self.addAction(self.makeIcon(), QLineEdit.ActionPosition.TrailingPosition)
+        self.pickAction.setToolTip('Pick a color')
+        self.pickAction.triggered.connect(self.pickColor)
+        self.textChanged.connect(lambda: self.pickAction.setIcon(self.makeIcon()))
+
+    def makeIcon(self):
+        """Returns the icon for the color picker button, which is a color wheel around the color that is entered"""
+        pixmap = QPixmap(self.iconSize, self.iconSize)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        wheel = QConicalGradient(self.iconSize / 2, self.iconSize / 2, 0)
+        for step in range(7):
+            wheel.setColorAt(step / 6, QColor.fromHsvF((step / 6) % 1, 0.85, 0.95))
+        painter.setBrush(wheel)
+        painter.drawEllipse(QRectF(2, 2, self.iconSize - 4, self.iconSize - 4))
+        # The middle shows the color that is entered, or what is behind the text box if there isn't one
+        color = theme.parseColor(self.text())
+        painter.setBrush(color if color.isValid() else self.palette().base())
+        inset = self.iconSize * 0.24
+        painter.drawEllipse(QRectF(inset, inset, self.iconSize - 2 * inset, self.iconSize - 2 * inset))
+        painter.end()
+        return QIcon(pixmap)
+
+    def pickColor(self):
+        current = theme.parseColor(self.text())
+        color = QColorDialog.getColor(current if current.isValid() else QColor(theme.getColor('window')), self,
+                                      'Pick a Color')
+        if color.isValid():
+            self.setText(color.name())
 
 
 class PropertyEditor(QWidget):
@@ -81,6 +122,12 @@ class PropertyEditor(QWidget):
 
             self.editor.setValue(self.prop.getValue())
             self.editor.valueChanged.connect(self.valueChanged.emit)
+            self.layout().addWidget(self.editor)
+
+        elif isinstance(prop, motorlib.properties.ColorProperty):
+            self.editor = ColorEditor()
+            self.editor.setText(self.prop.getValue())
+            self.editor.setPlaceholderText('Theme default')
             self.layout().addWidget(self.editor)
 
         elif isinstance(prop, motorlib.properties.StringProperty):

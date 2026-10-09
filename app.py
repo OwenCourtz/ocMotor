@@ -24,9 +24,10 @@ class App(QApplication):
 
         self.preferencesManager = uilib.preferencesManager.PreferencesManager()
         if not self.headless:
-            # The theme comes from the preferences, and has to be set up before any graphs are built
-            appearance = self.preferencesManager.preferences.appearance
-            uilib.theme.apply(self, appearance.getProperty('theme'), appearance.getProperty('accent'))
+            # The theme comes from the preferences. It is set up before anything else is built, and is the first
+            # thing to hear about a change to the preferences so everything else is redrawn in the new theme.
+            self.applyTheme(self.preferencesManager.preferences)
+            self.preferencesManager.preferencesChanged.connect(self.applyTheme)
 
         self.propellantManager = uilib.propellantManager.PropellantManager()
         self.preferencesManager.preferencesChanged.connect(self.propellantManager.setPreferences)
@@ -83,6 +84,11 @@ class App(QApplication):
                 self.window.ui.resultsWidget.setupGrainChecks(len(self.fileManager.getCurrentMotor().grains), False)
             self.window.show()
             logger.log('Window opened')
+
+    def applyTheme(self, preferences):
+        appearance = preferences.appearance
+        uilib.theme.apply(self, appearance.getProperty('theme'), appearance.getProperty('accent'),
+                          appearance.getProperty('windowColor'), appearance.getProperty('panelColor'))
 
     def isDarkMode(self):
         if self.headless:

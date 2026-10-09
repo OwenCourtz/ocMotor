@@ -125,20 +125,28 @@ class Window(QMainWindow):
         # wherever the names happen to end. Giving them a column each lines them up.
         grid = self.ui.gridLayout
         cells = [(grid.getItemPosition(index), grid.itemAt(index).layout()) for index in range(grid.count())]
-        namePalette = QPalette(self.palette())
-        namePalette.setColor(QPalette.ColorRole.WindowText, QColor(theme.getColor('mutedText')))
         for (row, column, _, _), cell in cells:
             grid.removeItem(cell)
             name, value = cell.itemAt(0).widget(), cell.itemAt(1).widget()
             grid.addWidget(name, row, column * 2)
             grid.addWidget(value, row, column * 2 + 1)
             # The values are what gets read, so they are the part that stands out
-            name.setPalette(namePalette)
+            name.setProperty('statName', True)
             valueFont = value.font()
             valueFont.setBold(True)
             value.setFont(valueFont)
             grid.setColumnStretch(column * 2 + 1, 1)
         grid.setHorizontalSpacing(12)
+        self.styleMotorStats()
+
+    def styleMotorStats(self):
+        # Only the color of the text is set so the names still take everything else from the theme
+        namePalette = QPalette()
+        namePalette.setColor(QPalette.ColorRole.WindowText, QColor(theme.getColor('mutedText')))
+        for index in range(self.ui.gridLayout.count()):
+            label = self.ui.gridLayout.itemAt(index).widget()
+            if label.property('statName'):
+                label.setPalette(namePalette)
 
     def setupMotorStats(self):
         for label in self.motorStatLabels:
@@ -483,7 +491,11 @@ class Window(QMainWindow):
         event.ignore()
 
     def applyPreferences(self, prefDict):
+        self.styleMotorStats()
         self.updateGrainTable()
+        # Whatever is being edited has a preview that is drawn from the preferences
+        if self.ui.motorEditor.isVisible():
+            self.ui.motorEditor.propertyUpdate()
         self.setupMotorStats()
         self.setupGraph()
 

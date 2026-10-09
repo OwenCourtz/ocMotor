@@ -1,10 +1,11 @@
 from math import radians, tan
 
 from PyQt6.QtWidgets import QWidget, QApplication, QGraphicsScene, QGraphicsPolygonItem
-from PyQt6.QtGui import QPolygonF, QBrush
+from PyQt6.QtGui import QPolygonF, QBrush, QColor
 from PyQt6.QtCore import QPointF, Qt, QTimer
 
 import motorlib
+from .. import theme
 from ..views.NozzlePreview_ui import Ui_NozzlePreview
 
 class NozzlePreviewWidget(QWidget):
@@ -14,10 +15,6 @@ class NozzlePreviewWidget(QWidget):
         self.ui.setupUi(self)
 
         self.brush = QBrush()
-
-        if QApplication.instance() and QApplication.instance().isDarkMode():
-            self.brush.setColor(Qt.GlobalColor.lightGray)
-
         self.brush.setStyle(Qt.BrushStyle.SolidPattern)
         self.scene = QGraphicsScene(self)
         self.upper = QGraphicsPolygonItem()
@@ -39,6 +36,10 @@ class NozzlePreviewWidget(QWidget):
 
         self.upper.setPolygon(QPolygonF([]))
         self.lower.setPolygon(QPolygonF([]))
+        # The theme can change while the application is running, so the color is set whenever the nozzle is drawn
+        self.brush.setColor(QColor(theme.getColor('propellant')))
+        self.upper.setBrush(self.brush)
+        self.lower.setBrush(self.brush)
 
         for alert in geomAlerts:
             if alert.level == motorlib.simResult.SimAlertLevel.ERROR:

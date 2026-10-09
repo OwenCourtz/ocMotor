@@ -68,7 +68,7 @@
        <item>
         <widget class="QLabel" name="labelAppearance">
          <property name="text">
-          <string>Set how the application looks. A change to the theme or accent color takes effect the next time the application is started. The colormap is used wherever a grain is colored by how far it has to regress before it burns.</string>
+          <string>Set how the application looks. Colors are entered as hex codes like #701033, or chosen with the color picker at the end of each box. The window background is what sits behind everything, and the panel background is what is behind tables, inputs and graphs. Leave either blank to use the color of the theme. The colormap is used wherever a grain is colored by how far it has to regress before it burns.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -82,13 +82,6 @@
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="pushButtonAccent">
-         <property name="text">
-          <string>Choose Accent Color</string>
          </property>
         </widget>
        </item>

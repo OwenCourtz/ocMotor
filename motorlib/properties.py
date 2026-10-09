@@ -84,6 +84,10 @@ class StringProperty(Property):
         super().__init__(dispName, "", str)
 
 
+class ColorProperty(StringProperty):
+    """A property that holds a color as a string like '#rrggbb', which can be left empty to mean no color"""
+
+
 class BooleanProperty(Property):
     """A property with a single boolean as the value"""
 

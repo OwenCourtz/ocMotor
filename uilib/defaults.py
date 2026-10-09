@@ -31,6 +31,9 @@ DEFAULT_PREFERENCES = {
     'appearance': {
         'theme': 'System',
         'accent': '#701033',
+        # Blank to use the colors of the theme
+        'windowColor': '',
+        'panelColor': '',
         'colormap': 'turbo'
     }
 }

@@ -8,10 +8,9 @@ class GrainImageWidget(QLabel):
     def showImage(self, image):
         np.ma.set_fill_value(image, 0)
         # The images are shown in a table, so anything that isn't propellant is the color of the table's cells
-        image = np.where(image.filled(), theme.getGrayLevel('propellant'), theme.getGrayLevel('base')).astype(np.uint8)
-        image = np.ascontiguousarray(image)
-        height, width = image.shape
+        image = theme.getImage(image.filled().astype(bool), 'propellant', 'base')
+        height, width, _ = image.shape
 
-        qImg = QImage(image.data, width, height, QImage.Format.Format_Grayscale8)
+        qImg = QImage(image.data, width, height, 3 * width, QImage.Format.Format_RGB888)
         pixmap = QPixmap(qImg)
         self.setPixmap(pixmap)

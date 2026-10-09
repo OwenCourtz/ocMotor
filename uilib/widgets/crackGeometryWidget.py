@@ -18,8 +18,7 @@ class CrackGeometryWidget(FigureCanvas):
     def colorize(self, propellant):
         """Takes an array that is true where there is propellant and returns an image of it to draw"""
         # Anything that isn't propellant is the color of what is behind the graph, so only the propellant stands out
-        return np.where(np.ma.filled(propellant, False), theme.getGrayLevel('propellant'),
-                        theme.getGrayLevel('window')).astype(np.uint8)
+        return theme.getImage(np.ma.filled(propellant, False), 'propellant', 'window')
 
     def setupPlots(self, titles, regressionData):
         """Clears the figure and adds a plot to it for each of the titles passed in. Returns a list of tuples of the
@@ -53,7 +52,7 @@ class CrackGeometryWidget(FigureCanvas):
                 self.images.append(None)
             else:
                 plot, _ = plots.pop(0)
-                self.images.append(plot.imshow(self.colorize(regressionMap > 0), cmap='gray', vmin=0, vmax=255))
+                self.images.append(plot.imshow(self.colorize(regressionMap > 0)))
         self.draw()
 
     def showRegression(self, titles, regressionData, scales, unit, colormap):

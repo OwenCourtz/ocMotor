@@ -4,7 +4,7 @@ from os import replace
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtWidgets import QApplication
 
-from motorlib.properties import PropertyCollection, EnumProperty, StringProperty
+from motorlib.properties import PropertyCollection, EnumProperty, ColorProperty
 from motorlib.units import unitLabels, getAllConversions
 from motorlib.motor import MotorConfig
 
@@ -22,7 +22,9 @@ class Preferences():
             self.units.props[unit] = EnumProperty(unitLabels[unit], getAllConversions(unit))
         self.appearance = PropertyCollection()
         self.appearance.props['theme'] = EnumProperty('Theme', THEMES)
-        self.appearance.props['accent'] = StringProperty('Accent color')
+        self.appearance.props['accent'] = ColorProperty('Accent color')
+        self.appearance.props['windowColor'] = ColorProperty('Window background')
+        self.appearance.props['panelColor'] = ColorProperty('Panel background')
         self.appearance.props['colormap'] = EnumProperty('Regression colormap', COLORMAPS)
 
         if propDict is not None:
