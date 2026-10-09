@@ -22,11 +22,11 @@ class App(QApplication):
 
         self.headless = '-h' in args
 
-        if not self.headless:
-            # The theme has to be set up before any widgets or graphs are built so it applies everywhere
-            uilib.theme.apply(self)
-
         self.preferencesManager = uilib.preferencesManager.PreferencesManager()
+        if not self.headless:
+            # The theme comes from the preferences, and has to be set up before any graphs are built
+            appearance = self.preferencesManager.preferences.appearance
+            uilib.theme.apply(self, appearance.getProperty('theme'), appearance.getProperty('accent'))
 
         self.propellantManager = uilib.propellantManager.PropellantManager()
         self.preferencesManager.preferencesChanged.connect(self.propellantManager.setPreferences)
@@ -88,7 +88,7 @@ class App(QApplication):
         if self.headless:
             return False
 
-        return self.styleHints().colorScheme() == Qt.ColorScheme.Dark
+        return uilib.theme.darkMode
 
     def outputMessage(self, content, title='ocMotor'):
         if self.headless:

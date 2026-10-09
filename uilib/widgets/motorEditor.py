@@ -26,6 +26,9 @@ class MotorEditor(CollectionEditor):
 
         self.objType = None
 
+        # Any spare room goes to the previews instead of being left empty under them
+        self.layout().setStretchFactor(self.stats, 1)
+
     def setPreferences(self, pref):
         super().setPreferences(pref)
         self.grainPreview.setPreferences(pref)

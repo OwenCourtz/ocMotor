@@ -1,14 +1,20 @@
 import sys
 from threading import Thread
 
-from PyQt6.QtWidgets import QMainWindow, QTableWidgetItem, QHeaderView
+from PyQt6.QtWidgets import QMainWindow, QTableWidgetItem, QHeaderView, QDockWidget, QWidget, QVBoxLayout, QMenu
+from PyQt6.QtWidgets import QSizePolicy, QComboBox
+from PyQt6.QtGui import QKeySequence, QPalette, QColor
 from PyQt6.QtCore import Qt
 
 import motorlib
 import uilib.widgets.aboutDialog
+from uilib import theme
 from uilib.views.MainWindow_ui import Ui_MainWindow
 
 class Window(QMainWindow):
+    # How wide the sidebar is when the window opens
+    sidebarWidth = 360
+
     def __init__(self, app):
         QMainWindow.__init__(self)
         self.ui = Ui_MainWindow()
@@ -45,6 +51,8 @@ class Window(QMainWindow):
         self.app.toolManager.setupMenu(self.ui.menuTools)
         self.app.toolManager.changeApplied.connect(self.postLoadUpdate)
 
+        self.setupSidebar()
+        self.layoutMotorStats()
         self.setupMotorStats()
         self.setupMotorEditor()
         self.setupGrainAddition()
@@ -60,6 +68,77 @@ class Window(QMainWindow):
         unsavedStr = '*' if not saved else ''
         displayName = name if name is not None else ''
         self.setWindowTitle('ocMotor - {}{}'.format(displayName, unsavedStr))
+
+    def setupSidebar(self):
+        # The propellant selector and the list of the motor's parts live in a panel at the side of the window, which
+        # can be hidden or pulled out into a window of its own
+        panel = QWidget()
+        panelLayout = QVBoxLayout(panel)
+        column = self.ui.verticalLayoutMotorEditor
+        for layout in (self.ui.horizontalLayoutPropellant, self.ui.horizontalLayoutEditButtons,
+                       self.ui.horizontalLayoutAddGrain):
+            column.removeItem(layout)
+            layout.setParent(None)
+        column.removeWidget(self.ui.tableWidgetGrainList)
+        panelLayout.addLayout(self.ui.horizontalLayoutPropellant)
+        panelLayout.addWidget(self.ui.tableWidgetGrainList)
+        panelLayout.addLayout(self.ui.horizontalLayoutEditButtons)
+        panelLayout.addLayout(self.ui.horizontalLayoutAddGrain)
+        # The list and propellant selector were limited to the size of the space they used to have
+        self.ui.tableWidgetGrainList.setMaximumSize(16777215, 16777215)
+        self.ui.tableWidgetGrainList.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.ui.comboBoxPropellant.setMaximumWidth(16777215)
+        # A long propellant name shouldn't decide how narrow the sidebar can be made
+        self.ui.comboBoxPropellant.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.ui.comboBoxPropellant.setMinimumContentsLength(12)
+        self.ui.line.hide()
+
+        self.sidebar = QDockWidget('Motor', self)
+        self.sidebar.setObjectName('sidebarMotor')
+        self.sidebar.setWidget(panel)
+        self.sidebar.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.sidebar)
+        self.resizeDocks([self.sidebar], [self.sidebarWidth], Qt.Orientation.Horizontal)
+
+        menuView = QMenu('View', self.ui.menubar)
+        self.ui.menubar.insertMenu(self.ui.menuSimulate.menuAction(), menuView)
+        toggleSidebar = self.sidebar.toggleViewAction()
+        toggleSidebar.setText('Motor Sidebar')
+        toggleSidebar.setShortcut(QKeySequence('Ctrl+B'))
+        menuView.addAction(toggleSidebar)
+
+        # With the list in the sidebar, the column it was in only holds the editor, which is hidden until
+        # something is being edited so it doesn't leave a gap
+        self.setEditorVisible(False)
+        self.ui.motorEditor.closed.connect(lambda: self.setEditorVisible(False))
+
+    def setEditorVisible(self, visible):
+        self.ui.motorEditor.setVisible(visible)
+        self.ui.line_2.setVisible(visible)
+
+    def editObject(self, obj):
+        self.setEditorVisible(True)
+        self.ui.motorEditor.loadObject(obj)
+
+    def layoutMotorStats(self):
+        # The form puts the name and value of each statistic in a layout of their own, which leaves the values
+        # wherever the names happen to end. Giving them a column each lines them up.
+        grid = self.ui.gridLayout
+        cells = [(grid.getItemPosition(index), grid.itemAt(index).layout()) for index in range(grid.count())]
+        namePalette = QPalette(self.palette())
+        namePalette.setColor(QPalette.ColorRole.WindowText, QColor(theme.getColor('mutedText')))
+        for (row, column, _, _), cell in cells:
+            grid.removeItem(cell)
+            name, value = cell.itemAt(0).widget(), cell.itemAt(1).widget()
+            grid.addWidget(name, row, column * 2)
+            grid.addWidget(value, row, column * 2 + 1)
+            # The values are what gets read, so they are the part that stands out
+            name.setPalette(namePalette)
+            valueFont = value.font()
+            valueFont.setBold(True)
+            value.setFont(valueFont)
+            grid.setColumnStretch(column * 2 + 1, 1)
+        grid.setHorizontalSpacing(12)
 
     def setupMotorStats(self):
         for label in self.motorStatLabels:
@@ -247,11 +326,11 @@ class Window(QMainWindow):
         if len(ind) > 0:
             gid = ind[0].row()
             if gid < len(cm.grains):
-                self.ui.motorEditor.loadObject(cm.grains[gid])
+                self.editObject(cm.grains[gid])
             elif gid == len(cm.grains):
-                self.ui.motorEditor.loadObject(cm.nozzle)
+                self.editObject(cm.nozzle)
             else:
-                self.ui.motorEditor.loadObject(cm.config)
+                self.editObject(cm.config)
             self.toggleGrainButtons(False)
 
     def copyGrain(self):
@@ -285,7 +364,7 @@ class Window(QMainWindow):
         self.app.fileManager.addNewMotorHistory(cm)
         self.updateGrainTable()
         self.ui.tableWidgetGrainList.selectRow(len(cm.grains) - 1)
-        self.ui.motorEditor.loadObject(cm.grains[-1])
+        self.editObject(cm.grains[-1])
         self.checkGrainSelection()
         self.toggleGrainButtons(False)
 

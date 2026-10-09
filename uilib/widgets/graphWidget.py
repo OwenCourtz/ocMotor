@@ -21,10 +21,12 @@ class GraphWidget(FigureCanvas):
         self.preferences = pref
 
     def setupPlot(self):
-        self.figure = Figure()
+        # The constrained layout resizes the plot whenever it is drawn so its labels always fit, which matters
+        # because the numbers on the Y axis get wider as the values being plotted get larger
+        self.figure = Figure(layout='constrained')
+        self.figure.get_layout_engine().set(w_pad=0.08, h_pad=0.08)
         self.canvas = FigureCanvas(self.figure)
         self.plot = self.figure.add_subplot(111)
-        self.figure.tight_layout()
 
     def plotData(self, simResult, xChannel, yChannels, grains):
         self.plot.clear()

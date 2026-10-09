@@ -7,26 +7,28 @@ from cycler import cycler
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPalette
 
-# The color that the application's highlights are based around
-ACCENT = '#701033'
+# The color that the application's highlights are based around unless the user picks another
+DEFAULT_ACCENT = '#701033'
 
-# The colors of the UI, by whether dark mode is in use. The window color is what sits behind everything, and the base
-# color is what is behind anything that is edited or drawn on, like a text box or the axes of a graph.
-COLORS = {
+# The themes that the user can choose from. The system theme is light or dark to match the operating system.
+SYSTEM_THEME, LIGHT_THEME, DARK_THEME = 'System', 'Light', 'Dark'
+THEMES = [SYSTEM_THEME, LIGHT_THEME, DARK_THEME]
+
+# The colors of the UI that don't depend on the accent, by whether dark mode is in use. The window color is what sits
+# behind everything, and the base color is what is behind anything that is edited or drawn on, like a text box or the
+# axes of a graph.
+NEUTRALS = {
     False: {
         'window': '#f0f0f0',
         'base': '#ffffff',
         'alternateBase': '#f6f6f6',
         'button': '#f0f0f0',
         'text': '#1f1f1f',
+        'mutedText': '#5c5c5c',
         'disabledText': '#a0a0a0',
-        'highlight': ACCENT,
-        'highlightedText': '#ffffff',
-        'link': ACCENT,
         'grid': '#d9d9d9',
         'axes': '#8c8c8c',
-        # The accent is first so anything with a single line on it is drawn in it
-        'lines': [ACCENT, '#1f6f8b', '#c9892b', '#3a7d44', '#5b4b8a', '#7a7a7a', '#b5524a', '#2a9d8f'],
+        'lines': ['#1f6f8b', '#c9892b', '#3a7d44', '#5b4b8a', '#7a7a7a', '#b5524a', '#2a9d8f'],
         'propellant': '#2d2d2d',
     },
     True: {
@@ -35,24 +37,46 @@ COLORS = {
         'alternateBase': '#252525',
         'button': '#353535',
         'text': '#e6e6e6',
+        'mutedText': '#a8a8a8',
         'disabledText': '#7a7a7a',
-        # The accent itself is too dark to see against a dark background, so lighter versions of it stand in
-        'highlight': '#8a1a45',
-        'highlightedText': '#ffffff',
-        'link': '#d0668f',
         'grid': '#3d3d3d',
         'axes': '#8c8c8c',
-        'lines': ['#d0668f', '#5fb3ce', '#e3b05a', '#7cc48a', '#a493d6', '#b0b0b0', '#e08b84', '#63cdbf'],
+        'lines': ['#5fb3ce', '#e3b05a', '#7cc48a', '#a493d6', '#b0b0b0', '#e08b84', '#63cdbf'],
         'propellant': '#c0c0c0',
     }
 }
 
 darkMode = False
+colors = dict(NEUTRALS[False])
+
+
+def getColors(dark, accent):
+    """Returns a dictionary of all of the colors of a theme, as strings like '#rrggbb'. The colors that highlight
+    things are worked out from the accent color passed in, which is replaced by the default if it isn't valid."""
+    accentColor = QColor(accent)
+    if not accentColor.isValid():
+        accentColor = QColor(DEFAULT_ACCENT)
+    hue, saturation, lightness, _ = accentColor.getHslF()
+    themeColors = dict(NEUTRALS[dark])
+    if dark:
+        # A dark accent can't be seen against a dark background, so lighter versions of it stand in where needed
+        highlight = QColor.fromHslF(hue, saturation, max(lightness, 0.32))
+        line = QColor.fromHslF(hue, min(saturation, 0.55), max(lightness, 0.61))
+    else:
+        highlight = accentColor
+        line = QColor.fromHslF(hue, saturation, min(lightness, 0.45))
+    themeColors['highlight'] = highlight.name()
+    # Whichever of black and white is easier to read on top of the highlight
+    themeColors['highlightedText'] = '#ffffff' if highlight.lightnessF() < 0.6 else '#000000'
+    themeColors['link'] = line.name()
+    # The accent is first so anything with a single line on it is drawn in it
+    themeColors['lines'] = [line.name()] + themeColors['lines']
+    return themeColors
 
 
 def getColor(name):
     """Returns one of the colors of the theme that is in use, as a string like '#rrggbb'"""
-    return COLORS[darkMode][name]
+    return colors[name]
 
 
 def getGrayLevel(name):
@@ -81,6 +105,13 @@ def getPalette():
     }
     for role, name in roles.items():
         palette.setColor(role, QColor(getColor(name)))
+    # The shades that frames and separators are drawn with, which would otherwise stay the ones for a light theme
+    window = QColor(getColor('window'))
+    palette.setColor(QPalette.ColorRole.Light, window.lighter(150))
+    palette.setColor(QPalette.ColorRole.Midlight, window.lighter(125))
+    palette.setColor(QPalette.ColorRole.Mid, window.darker(130))
+    palette.setColor(QPalette.ColorRole.Dark, window.darker(160))
+    palette.setColor(QPalette.ColorRole.Shadow, window.darker(300))
     for role in (QPalette.ColorRole.WindowText, QPalette.ColorRole.Text, QPalette.ColorRole.ButtonText):
         palette.setColor(QPalette.ColorGroup.Disabled, role, QColor(getColor('disabledText')))
     return palette
@@ -115,10 +146,15 @@ def getGraphSettings():
     }
 
 
-def apply(app):
-    """Sets up the look of the application. This has to be called before any of its widgets or graphs are made."""
-    global darkMode
-    darkMode = app.styleHints().colorScheme() == Qt.ColorScheme.Dark
+def apply(app, theme=SYSTEM_THEME, accent=DEFAULT_ACCENT):
+    """Sets up the look of the application from the name of a theme and an accent color. This has to be called
+    before any of its graphs are made, as they take their colors from the theme when they are built."""
+    global darkMode, colors
+    if theme == SYSTEM_THEME:
+        darkMode = app.styleHints().colorScheme() == Qt.ColorScheme.Dark
+    else:
+        darkMode = theme == DARK_THEME
+    colors = getColors(darkMode, accent)
     # Fusion looks the same on every platform and takes all of its colors from the palette
     app.setStyle('fusion')
     app.setPalette(getPalette())

@@ -29,6 +29,8 @@ DEFAULT_PREFERENCES = {
         'm/(s*Pa^n)': 'in/(s*psi^n)'
     },
     'appearance': {
+        'theme': 'System',
+        'accent': '#701033',
         'colormap': 'turbo'
     }
 }
