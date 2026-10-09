@@ -9,6 +9,37 @@ import motorlib
 from .polygonEditor import PolygonEditor
 from .tabularEditor import TabularEditor
 
+class FloatEditor(QDoubleSpinBox):
+    """A spin box that only shows the digits of its value that matter. It still holds its value to the full number of
+    decimal places, and the value is only changed by what is shown if it is edited."""
+    maxDecimals = 8
+    significantDigits = 6
+
+    def __init__(self):
+        super().__init__()
+        self.setDecimals(self.maxDecimals)
+
+    def textFromValue(self, value):
+        if value == 0:
+            decimals = 0
+        else:
+            decimals = self.significantDigits - 1 - math.floor(math.log10(abs(value)))
+            decimals = min(max(decimals, 0), self.maxDecimals)
+        text = super().textFromValue(round(value, decimals))
+        decimalPoint = self.locale().decimalPoint()
+        if decimalPoint in text:
+            text = text.rstrip('0').rstrip(decimalPoint)
+        return text
+
+    def valueFromText(self, text):
+        # The spin box reads its value back from its text whenever it is done being edited, which would round the
+        # value off to what is shown if nothing had been typed
+        shown = text.removeprefix(self.prefix()).removesuffix(self.suffix()).strip()
+        if shown == self.textFromValue(self.value()):
+            return self.value()
+        return super().valueFromText(text)
+
+
 class PropertyEditor(QWidget):
 
     valueChanged = pyqtSignal()
@@ -27,7 +58,7 @@ class PropertyEditor(QWidget):
             self.dispUnit = self.prop.unit
 
         if isinstance(prop, motorlib.properties.FloatProperty):
-            self.editor = QDoubleSpinBox()
+            self.editor = FloatEditor()
 
             self.editor.setSuffix(' {}'.format(self.dispUnit))
 
@@ -35,7 +66,6 @@ class PropertyEditor(QWidget):
             convMax = motorlib.units.convert(self.prop.max, self.prop.unit, self.dispUnit)
             self.editor.setRange(convMin, convMax)
 
-            self.editor.setDecimals(8) # Large number of decimals for now while I pick a better method
             self.editor.setSingleStep(10 ** (int(math.log(convMax, 10) - 4)))
 
             self.editor.setValue(motorlib.units.convert(self.prop.getValue(), prop.unit, self.dispUnit))

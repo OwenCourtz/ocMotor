@@ -1,7 +1,5 @@
 import sys
 import os
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6.QtGui import QIcon
@@ -11,6 +9,7 @@ import motorlib
 from motorlib import simResult
 from uilib import preferencesManager, propellantManager, simulationManager, fileManager, toolManager
 from uilib import importExportManager
+import uilib.theme
 import uilib.widgets.mainWindow
 from uilib.logger import logger
 from uilib.fileIO import appVersionStr
@@ -23,11 +22,9 @@ class App(QApplication):
 
         self.headless = '-h' in args
 
-        if not self.headless and self.isDarkMode():
-            # Change these settings before any graph widgets are built, so they apply everywhere
-            plt.style.use('dark_background')
-            mpl.rcParams['axes.facecolor'] = '1e1e1e'
-            mpl.rcParams['figure.facecolor'] = '1e1e1e'
+        if not self.headless:
+            # The theme has to be set up before any widgets or graphs are built so it applies everywhere
+            uilib.theme.apply(self)
 
         self.preferencesManager = uilib.preferencesManager.PreferencesManager()
 
@@ -74,16 +71,10 @@ class App(QApplication):
             sys.exit(0)
 
         else:
-            usingDarkMode = self.isDarkMode()
-            currentTheme = self.style().objectName()
             logger.log('openMotor version "{}"'.format(appVersionStr))
-            logger.log('Opening window (dark mode: {}, default theme: "{}")'.format(usingDarkMode, currentTheme))
+            logger.log('Opening window (dark mode: {})'.format(self.isDarkMode()))
             if startupFileLoaded:
                 logger.log('Loaded startup file from "{}"'.format(args[-1]))
-            # Windows 10 and before don't have dark mode versions of their themes, so if the user wants dark mode, we have to switch to fusion
-            if usingDarkMode and currentTheme in ['windows', 'windowsvista']:
-                logger.log('Overriding theme to fusion to get dark mode')
-                self.setStyle('fusion')
             self.window = uilib.widgets.mainWindow.Window(self)
             self.preferencesManager.publishPreferences()
             if startupFileLoaded:
@@ -99,7 +90,7 @@ class App(QApplication):
 
         return self.styleHints().colorScheme() == Qt.ColorScheme.Dark
 
-    def outputMessage(self, content, title='openMotor'):
+    def outputMessage(self, content, title='ocMotor'):
         if self.headless:
             print(content)
         else:
@@ -110,7 +101,7 @@ class App(QApplication):
             msg.setWindowTitle(title)
             msg.exec()
 
-    def promptYesNo(self, content, title='openMotor'):
+    def promptYesNo(self, content, title='ocMotor'):
         if self.headless:
             return input('{} (y/n): '.format(content)) == 'y'
         else:
@@ -122,7 +113,7 @@ class App(QApplication):
             msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             return msg.exec() == QMessageBox.StandardButton.Yes
 
-    def outputException(self, exception, text, title='openMotor - Error'):
+    def outputException(self, exception, text, title='ocMotor - Error'):
         if self.headless:
             print(text + " " + str(exception))
         else:

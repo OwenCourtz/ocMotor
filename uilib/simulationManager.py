@@ -13,6 +13,7 @@ class SimulationManager(QObject):
     newSimulationResult = pyqtSignal(object)
     simProgress = pyqtSignal(float)
     simCanceled = pyqtSignal()
+    taskDone = pyqtSignal(object)
 
     def __init__(self):
         super().__init__()
@@ -20,6 +21,7 @@ class SimulationManager(QObject):
         self.progDialog = SimulationProgressDialog()
         self.simProgress.connect(self.progDialog.progressUpdate)
         self.simulationDone.connect(self.progDialog.hide)
+        self.taskDone.connect(self.progDialog.hide)
         self.progDialog.simulationCanceled.connect(self.cancelSim)
 
         self.alertsDialog = SimulationAlertsDialog()
@@ -48,6 +50,17 @@ class SimulationManager(QObject):
         if simRes.success and show:
             logger.log('Simulation succeeded')
             self.newSimulationResult.emit(simRes)
+
+    def runTask(self, task): # Runs a function that performs a number of simulations and reports what it returns on taskDone
+        logger.log('Running simulation task')
+        self.threadStopped = False
+        self.progDialog.show()
+        self.currentSimThread = Thread(target=self._taskThread, args=[task])
+        self.currentSimThread.start()
+
+    def _taskThread(self, task):
+        # The task is passed the same callback as a simulation, so it must stop if the callback returns true
+        self.taskDone.emit(task(self.updateProgressBar))
 
     def updateProgressBar(self, prog):
         self.simProgress.emit(prog)

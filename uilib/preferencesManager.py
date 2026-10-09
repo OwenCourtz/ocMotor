@@ -9,7 +9,7 @@ from motorlib.units import unitLabels, getAllConversions
 from motorlib.motor import MotorConfig
 
 from .fileIO import loadFile, saveFile, getConfigPath, fileTypes
-from .defaults import DEFAULT_PREFERENCES
+from .defaults import DEFAULT_PREFERENCES, COLORMAPS
 from .widgets import preferencesMenu
 from .logger import logger
 
@@ -19,6 +19,8 @@ class Preferences():
         self.units = PropertyCollection()
         for unit in unitLabels:
             self.units.props[unit] = EnumProperty(unitLabels[unit], getAllConversions(unit))
+        self.appearance = PropertyCollection()
+        self.appearance.props['colormap'] = EnumProperty('Regression colormap', COLORMAPS)
 
         if propDict is not None:
             self.applyDict(propDict)
@@ -27,11 +29,17 @@ class Preferences():
         prefDict = {}
         prefDict['general'] = self.general.getProperties()
         prefDict['units'] = self.units.getProperties()
+        prefDict['appearance'] = self.appearance.getProperties()
         return prefDict
 
     def applyDict(self, dictionary):
         self.general.setProperties(dictionary['general'])
         self.units.setProperties(dictionary['units'])
+        # Preferences that were saved before there were any appearance settings don't have this section
+        self.appearance.setProperties(dictionary.get('appearance', {}))
+
+    def getColormap(self):
+        return self.appearance.getProperty('colormap')
 
     def getUnit(self, fromUnit):
         if fromUnit in self.units.props:

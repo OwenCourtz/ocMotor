@@ -23,10 +23,12 @@ class PreferencesMenu(QDialog):
         self.ui.settingsEditorGeneral.setPreferences(pref)
         self.ui.settingsEditorGeneral.loadProperties(pref.general)
         self.ui.settingsEditorUnits.loadProperties(pref.units)
+        self.ui.settingsEditorAppearance.loadProperties(pref.appearance)
 
     def apply(self):
         self.preferencesApplied.emit({'general': self.ui.settingsEditorGeneral.getProperties(),
-                                      'units': self.ui.settingsEditorUnits.getProperties()})
+                                      'units': self.ui.settingsEditorUnits.getProperties(),
+                                      'appearance': self.ui.settingsEditorAppearance.getProperties()})
         self.hide()
 
     def cancel(self):

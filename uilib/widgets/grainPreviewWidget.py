@@ -20,12 +20,17 @@ class GrainPreviewWidget(QWidget):
         self.ui.tabRegression.setupImagePlot()
         self.ui.tabAreaGraph.setupGraphPlot()
 
+        self.preferences = None
+
         # Used to navigate back to the tab the user was on after they clear alerts
         self.lastNonAlertTab = 1
 
         self.ui.tabWidget.currentChanged.connect(self.onTabChanged)
 
         self.previewReady.connect(self.updateView)
+
+    def setPreferences(self, pref):
+        self.preferences = pref
 
     def loadGrain(self, grain):
         geomAlerts = grain.getGeometryErrors()
@@ -53,18 +58,21 @@ class GrainPreviewWidget(QWidget):
 
     def _genData(self, grain):
         out = grain.getRegressionData(250, coreBlack=False)
-        self.previewReady.emit(out)
+        # A distance of one on the regression map is the radius of the grain
+        self.previewReady.emit(out + (grain.props['diameter'].getValue() / 2, ))
 
     def updateView(self, data):
-        coreIm, regImage, contours, contourLengths = data
+        coreIm, regImage, contours, contourLengths, radius = data
 
         self.ui.tabFace.cleanup()
         self.ui.tabFace.showImage(coreIm)
 
         if regImage is not None:
+            lengthUnit = self.preferences.getUnit('m') if self.preferences is not None else 'm'
+            colormap = self.preferences.getColormap() if self.preferences is not None else 'turbo'
             self.ui.tabRegression.cleanup()
-            self.ui.tabRegression.showImage(regImage)
-            self.ui.tabRegression.showContours(contours)
+            self.ui.tabRegression.showRegression(regImage, motorlib.units.convert(radius, 'm', lengthUnit),
+                                                 lengthUnit, colormap)
 
             points = [[], []]
 

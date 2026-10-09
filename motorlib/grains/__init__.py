@@ -9,6 +9,7 @@ from .dGrain import *
 from .rodTube import *
 from .conical import *
 from .custom import *
+from .cracked import *
 
 # Generate grain geometry name -> constructor lookup table
 grainTypes = {}

@@ -23,7 +23,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>openMotor</string>
+   <string>ocMotor</string>
   </property>
   <property name="windowIcon">
    <iconset>

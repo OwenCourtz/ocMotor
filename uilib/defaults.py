@@ -27,8 +27,16 @@ DEFAULT_PREFERENCES = {
         '(m*Pa)/s': '(in*psi)/s',
         'm/(s*Pa)': 'thou/(s*psi)',
         'm/(s*Pa^n)': 'in/(s*psi^n)'
+    },
+    'appearance': {
+        'colormap': 'turbo'
     }
 }
+
+# The colormaps that regression depth can be drawn with, which are the ones that MATLAB provides that matplotlib
+# also has
+COLORMAPS = ['turbo', 'jet', 'hsv', 'hot', 'cool', 'spring', 'summer', 'autumn', 'winter', 'gray', 'bone', 'copper',
+             'pink']
 
 CL_PROPS = {
             'name': 'MIT - Cherry Limeade',

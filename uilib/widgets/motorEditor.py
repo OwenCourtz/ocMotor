@@ -26,6 +26,10 @@ class MotorEditor(CollectionEditor):
 
         self.objType = None
 
+    def setPreferences(self, pref):
+        super().setPreferences(pref)
+        self.grainPreview.setPreferences(pref)
+
     def propertyUpdate(self):
         if issubclass(self.objType, motorlib.nozzle.Nozzle):
             exitDia = self.propertyEditors['exit'].getValue()

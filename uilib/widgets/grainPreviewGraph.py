@@ -1,10 +1,10 @@
 from itertools import cycle
 import numpy as np
 
-from PyQt6.QtWidgets import QApplication
-
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+
+from .. import theme
 
 class GrainPreviewGraph(FigureCanvas):
     def __init__(self):
@@ -13,6 +13,7 @@ class GrainPreviewGraph(FigureCanvas):
         self.preferences = None
 
         self.image = None
+        self.colorbar = None
         self.numContours = 0
 
         self.figure = Figure()
@@ -36,6 +37,9 @@ class GrainPreviewGraph(FigureCanvas):
         self.plot.set_yticklabels([])
 
     def cleanup(self):
+        if self.colorbar is not None:
+            self.colorbar.remove()
+            self.colorbar = None
         if self.image is not None:
             self.image.remove()
             self.image = None
@@ -46,19 +50,30 @@ class GrainPreviewGraph(FigureCanvas):
         self.draw()
 
     def showImage(self, image):
-        isDarkMode = QApplication.instance() and QApplication.instance().isDarkMode()
         # Image is an array core is 0, any other value is propellant
         # Cast it to a bool so core is 0, propellant is 1
         np.ma.set_fill_value(image, 0)
         image = image.filled().astype(bool)
 
-        coreColor = 30 if isDarkMode else 255
-        propellantColor = 192 if isDarkMode else 0
+        # The core is the color of what is behind the graph so only the propellant stands out
+        coreColor = theme.getGrayLevel('window')
+        propellantColor = theme.getGrayLevel('propellant')
 
         image = np.where(image, propellantColor, coreColor).astype(np.uint8)
 
         self.image = self.plot.imshow(image, cmap='gray', vmin=0, vmax=255)
 
+        self.draw()
+
+    def showRegression(self, regressionMap, scale, unit, colormap):
+        # Colors the propellant by how far it has to regress before it burns. The scale is the distance in the unit
+        # passed in that a distance of one on the regression map is equal to.
+        depth = np.ma.masked_less_equal(regressionMap * scale, 0)
+        self.image = self.plot.imshow(depth, cmap=colormap, vmin=0)
+        self.colorbar = self.figure.colorbar(self.image, ax=self.plot, fraction=0.046, pad=0.04)
+        # There isn't room beside the colorbar for a label, so its unit goes above it
+        self.colorbar.ax.set_title(unit, fontsize=8)
+        self.colorbar.ax.tick_params(labelsize=8)
         self.draw()
 
     def showContours(self, contours):
@@ -71,7 +86,7 @@ class GrainPreviewGraph(FigureCanvas):
         self.draw()
 
     def showGraph(self, points):
-        self.plot.plot(points[0], points[1], c='b')
+        self.plot.plot(points[0], points[1])
         self.numContours += 1
         self.draw()
 
